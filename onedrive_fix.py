@@ -14,6 +14,10 @@ def has_invalid_chars(name):
 def has_invisible_chars(name):
     return any(ord(c) < 32 for c in name)
 
+def has_wsl_remapped_chars(name):
+    # WSL (DrvFs) maps illegal NTFS characters to the Unicode Private Use Area (U+F000 - U+F0FF)
+    return any(0xF000 <= ord(c) <= 0xF0FF for c in name)
+
 def is_path_too_long(path):
     return len(path) > 250  # safety margin
 
@@ -36,11 +40,20 @@ def check_file(path, report):
     if has_invisible_chars(name):
         problems.append("Invisible characters in name")
 
+    if has_wsl_remapped_chars(name):
+        problems.append("WSL-remapped character detected (likely forbidden on Windows)")
+
     if is_path_too_long(path):
         problems.append("Path too long (>250 chars)")
 
     if has_invalid_timestamp(path):
         problems.append("Invalid timestamp")
+
+    if name.endswith(" "):
+        problems.append("Trailing space in name")
+
+    if name.endswith("."):
+        problems.append("Trailing dot in name")
 
     # ADS (Alternate Data Streams)
     if ":" in name and not path.startswith("\\\\?\\"):
