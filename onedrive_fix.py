@@ -86,6 +86,8 @@ def check_file(path, report):
             report.write(f"  - {prefix}{w}\n")
             
         report.write("\n")
+        
+    return problems
 
 def main():
     parser = argparse.ArgumentParser(description="OneDrive Diagnosis Tool")
@@ -105,10 +107,39 @@ def main():
         report.write(f"Date: {datetime.now()}\n\n")
         report.write(f"Scanned Path: {onedrive_path}\n\n")
 
+        stats = {
+            'files_scanned': 0,
+            'files_with_issues': 0,
+            'files_with_only_warnings': 0,
+            'total_issues': 0,
+            'total_warnings': 0
+        }
+
         for root, dirs, files in os.walk(onedrive_path):
             for f in files:
                 full = os.path.join(root, f)
-                check_file(full, report)
+                problems = check_file(full, report)
+                stats['files_scanned'] += 1
+                
+                num_issues = len(problems['issues'])
+                num_warnings = len(problems['warnings'])
+                
+                stats['total_issues'] += num_issues
+                stats['total_warnings'] += num_warnings
+                
+                if num_issues > 0:
+                    stats['files_with_issues'] += 1
+                elif num_warnings > 0:
+                    stats['files_with_only_warnings'] += 1
+
+        report.write("----------------------------------------\n")
+        report.write("SCAN SUMMARY\n")
+        report.write("----------------------------------------\n")
+        report.write(f"Number of files scanned: {stats['files_scanned']}\n")
+        report.write(f"Number of files with issues: {stats['files_with_issues']}\n")
+        report.write(f"Number of files with only warnings: {stats['files_with_only_warnings']}\n")
+        report.write(f"Total number of issues in all files: {stats['total_issues']}\n")
+        report.write(f"Total number of warnings in all files: {stats['total_warnings']}\n")
 
     print(f"Diagnosis completed. View the file: {report_file}")
 
